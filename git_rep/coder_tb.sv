@@ -4,85 +4,94 @@ logic in;
 logic clk;
 logic rst;
 logic out;
-logic [2:0];
+logic [2:0] inp;
 logic [3:0] mem;
 
 // DUT (Device Under Test)
 coder coder_ins (.in(in), .clk(clk), .rst(rst) ,out(out));
 
-task clk;
-		#5ns;
-		clk = ~clk; 
 
+//CLK
+always
+	begin
+		#1ns;
+		clk = ~clk;
+	end
 	
-function reset_test;
+task automaitc reset_test();
 	mem = 1011;
-	in = 1011;
-	in = 1011;
-	in = 1011; 
+	in = 1;
+	#300ns;
+	in = 0;
+	#300ns;
+	in = 1; 
+	#300ns;
+	in = 1;
 	
-function wrong_test 
+task automaitc wrong_test();
 	mem = 1010; 
-	in = 1010;
-	in = 1010;
-	in = 0011;
+	#200ns;
+	in = 1;
+	#300ns;
+	in = 0;
+	#300ns;
+	in = 0;
+	#300ns;
+	in = 1;
 	
-	
-
-function void randomize_inputs();
+task automaitc radmon_test();
+	mem = $random(); 
+	#300ns;
 	in = $random();
-	mem = $random();
-endfunction
-
+	#300ns;
+	in = $random();
+	#300ns;
+	in = $random();
+	#300ns;
+	in = $random();
+	
 
 
 inital
 	begin 
 		mem = 0
 		inp = 0;
-		{out,rst,in,} = 1; 
+		{rst,in,} = 1; 
+		{clearen, delayen, disa, out} = 0;
 		#1
 	end 
 	
 
 
 // Golden model
-function logic [11:0] golden_model(input logic [7:0] value, logic [3:0] mul);
+function logic golden_model(logic in , logic out);
 	begin
-		if (mul<=10)
-			golden_model = value*mul;
-		else
+		reset_test();
+		if(!out): 
 			golden_model = 0;
 			
-				reset_test;
+		wrong_test();
 		if(!out): 
-			$error 
-			retrun
-		wrong_test;
-		if(out):
-			$error
-			return;
-		else if 
-			//time test
-			return 
-		if(radmon_test):
-			$error
-			return;
-		$print("succes");
-		return;
+			golden_model = 0;	
+
+		radmon_test();
+		if(!out): 
+			golden_model = 0;
+			
+		golden_model = 1;
 	end
 endfunction 
 	
 // Checker
-function void check_coder(logic [7:0] value, logic [3:0] mul, logic [11:0] result);
-	logic [11:0] exp_result;
+function void check_coder(logic in, logic out);
+	logic exp_result;
 	 
-	//exp_result = (mul>10) ? '0 : value * mul;
-	exp_result = golden_model(value, mul);
+	//exp_result = test to see different inputs 
+	exp_result = golden_model(inp, out);
 	
-	$display("value=%b  mul=%b result=%b ,(%d*%d=%d)\n", value,mul,result,value,mul,result);
+	$display("inp=%b  mem=%b result=%b ,(%d*%d=%d)\n", in, out, in, out);
 
-	if (exp_result != result)
+	if (exp_result != out)
 		$error("checker failed: exp_result=%b (%d)", exp_result, exp_result);
 endfunction
 
@@ -91,15 +100,10 @@ initial
 	begin
 		forever
 			begin
-				@(value,mul,result);
+				@(in,out);
 				#0;
-				check_coder(value,mul,result);
+				check_coder(in,out);
 			end
 	end
 				
-
-
-
-
-
 endmodule //coder_tb
